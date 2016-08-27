@@ -206,7 +206,8 @@ for fpath, fsize in conn.list().iteritems():
 		os.path.makedirs(fdir)
 	print timestamp(), "fetching {!r} ({} bytes)".format(fpath, fsize)
 	contents = conn.download(fpath)
-	assert len(contents) == fsize
+	if not (len(contents) == fsize):
+		print "length mismatch, expected {}, got {}".format(fsize, len(contents))
 
 	with open(fpath, 'wb') as fh:
 		fh.write(contents)
