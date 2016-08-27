@@ -38,6 +38,11 @@ class LuaREPLConn(object):
 
 			self.expect(">\n")
 
+	def close(self):
+		if self.conn is not None:
+			self.conn.close()
+			self.conn = None
+
 	def expect(self, string):
 		while string:
 			block = self.conn.recv(1)
@@ -218,6 +223,7 @@ print "files in:", tempdir
 os.system('explorer "{}"'.format(tempdir))
 
 print "monitoring..."
+touched = False
 while True:
 	# find new files to register
 	for _path, _dirs, _files in os.walk(tempdir):
@@ -233,13 +239,37 @@ while True:
 			print timestamp(), "removing", fpath
 			del files[fpath]
 			conn.remove(fpath)
+			touched = True
 
 		else:
 			mtime = os.path.getmtime(fpath)
 			if mtime != files[fpath]:
 				print timestamp(), "uploading {!r}".format(fpath)
 				conn.upload(fpath, open(fpath, 'rb').read())
+				touched = True
 				files[fpath] = mtime
 				print timestamp(), "upload done"
 
-	time.sleep(1.0)
+	try:
+		time.sleep(1.0)
+	except KeyboardInterrupt:
+		break
+
+if touched:
+	while True:
+		line = raw_input("send a restart? ([y]/n) ").strip().lower()
+
+		if line == 'n':
+			print timestamp(), "not restarting"
+
+		elif line == 'y' or line == '':
+			conn.command("node.restart()")
+			print timestamp(), "node.restart() sent"
+
+		else:
+			print timestamp(), "I did not understand:", repr(line)
+			continue
+
+		break
+
+conn.close()
