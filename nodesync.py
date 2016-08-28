@@ -199,6 +199,15 @@ os.chdir(tempdir)
 @atexit.register
 def exithandler():
 	os.chdir(pwd)
+
+	if os.name == 'nt':
+		import win32com.client
+		o = win32com.client.Dispatch("shell.application")
+		for win in o.windows():
+			location = win.LocationURL.split("///")[1].replace("/", "\\")
+			if location == tempdir:
+				win.quit()
+
 	shutil.rmtree(tempdir)
 
 
@@ -220,7 +229,9 @@ for fpath, fsize in conn.list().iteritems():
 	files[fpath] = os.path.getmtime(fpath)
 
 print "files in:", tempdir
-os.system('explorer "{}"'.format(tempdir))
+
+if os.name == 'nt':
+	os.system('explorer "{}"'.format(tempdir))
 
 print "monitoring..."
 touched = False
