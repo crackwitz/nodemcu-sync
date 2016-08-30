@@ -82,9 +82,13 @@ class LuaREPLConn(object):
 		#print timestamp(), "_pull_response done"
 		return result
 
-	def command(self, command):
+	def command(self, command, get_response=True):
 		self._push_request(command)
-		return self._pull_response()
+
+		if get_response:
+			return self._pull_response()
+		else:
+			return None
 
 	def list(self):
 		response = self.command("for u,v in pairs(file.list()) do print(u,v) end")
@@ -205,7 +209,7 @@ def exithandler():
 		o = win32com.client.Dispatch("shell.application")
 		for win in o.windows():
 			location = win.LocationURL.split("///")[1].replace("/", "\\")
-			if location == tempdir:
+			if location.lower() == tempdir.lower():
 				win.quit()
 
 	shutil.rmtree(tempdir)
@@ -218,15 +222,21 @@ for fpath, fsize in conn.list().iteritems():
 	if not os.path.exists(fdir):
 		print "creating", fdir
 		os.path.makedirs(fdir)
-	print timestamp(), "fetching {!r} ({} bytes)".format(fpath, fsize)
+	print timestamp(), "fetching {!r} ({} B)".format(fpath, fsize),
+	t0 = time.time()
 	contents = conn.download(fpath)
-	if not (len(contents) == fsize):
-		print "length mismatch, expected {}, got {}".format(fsize, len(contents))
+	t1 = time.time()
 
 	with open(fpath, 'wb') as fh:
 		fh.write(contents)
 	
 	files[fpath] = os.path.getmtime(fpath)
+
+	print "-> {} B, {:.1f} secs, {:.1f} kB/s".format(
+		len(contents),
+		t1-t0,
+		fsize / (t1-t0) / 1e3
+		)
 
 print "files in:", tempdir
 
@@ -274,7 +284,7 @@ if touched:
 			print timestamp(), "not restarting"
 
 		elif line == 'y' or line == '':
-			conn.command("node.restart()")
+			conn.command("node.restart()", get_response=False)
 			print timestamp(), "node.restart() sent"
 
 		else:
