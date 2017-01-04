@@ -164,7 +164,7 @@ class LuaREPLConn(object):
 		self.command(
 			'nodesync_sock = net.createConnection(net.TCP, 0)')
 		self.command(
-			'nodesync_sock:on("receive", function(sock,data) file.write(data) end)')
+			'nodesync_sock:on("receive", function(sock,data) file.write(data) file.flush() end)')
 		self.command(
 			'nodesync_sock:on("disconnection", function(sock) sock:close(); file.close(); end)')
 		self.command(
